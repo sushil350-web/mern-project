@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
 import { connectDb } from "./database/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -17,18 +18,18 @@ cloudinary.v2.config({
   api_secret: process.env.Cloudinary_Secret,
 });
 
+const __dirname = path.resolve();
 const app = express();
 
-// Middleware
 app.use(express.json());
 app.use(cookieParser());
 
-// Root route
+// API Root route
 app.get("/", (req, res) => {
   res.send("Server working");
 });
 
-// Get all users route with fix: correct variable name and search logic
+// Get all users route
 app.get("/api/user/all", isAuth, async (req, res) => {
   try {
     const search = req.query.search || "";
@@ -51,14 +52,20 @@ app.get("/api/user/all", isAuth, async (req, res) => {
   }
 });
 
-// Use routes
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/post", postRoutes);
 
+// ✅ Serve frontend
+app.use(express.static(path.join(__dirname, "frontend/dist")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
+});
+
 const port = process.env.PORT || 7000;
 
-// Connect to DB, then start server
 connectDb()
   .then(() => {
     app.listen(port, () => {
